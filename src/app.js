@@ -1,16 +1,16 @@
 const express = require('express');
 const app = express();
 // root route
-app.get('/', (req, res) => {
+app.get('/user', (req, res) => {
     res.send("hi");
 });
 // hello route
-app.get('/hello', (req, res) => {
-    res.send("hello hello hello");
+app.post('/user', (req, res) => {
+    res.send("successfully posted");
 });
 // test route
-app.get('/test', (req, res) => {
-    res.send("hello test");
+app.delete('/user', (req, res) => {
+    res.send("successfully deleted");
 });
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
