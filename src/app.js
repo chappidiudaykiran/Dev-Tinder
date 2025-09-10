@@ -1,17 +1,17 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-// root route
-app.get('/user', (req, res) => {
-    res.send("hi");
-});
-// hello route
-app.post('/user', (req, res) => {
-    res.send("successfully posted");
-});
-// test route
-app.delete('/user', (req, res) => {
-    res.send("successfully deleted");
+app.use("/user", (req, res, next) => {
+  console.log("Error handle 1");
+  next();
+},
+(req, res, next) => {
+  console.log("Error handle 2");
+  next();
+},
+(req, res, next) => {
+  console.log("Error handle 3");
+  res.send("Hello from the other side");
 });
 app.listen(3000, () => {
-    console.log('Server is running on port 3000');
+  console.log("Server is running on port 3000");
 });
