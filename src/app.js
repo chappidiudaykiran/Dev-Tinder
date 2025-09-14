@@ -4,7 +4,11 @@ const connectDB=require("./config/database");
 const User=require("./models/user");
 const {valiadatesignup}=require("./utils/validation");
 const bcrypt = require('bcrypt');   
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const { userAuth } = require("./middlewares/auth");
 
+app.use(cookieParser());
 app.use(express.json());
 
 app.post("/signup",async(req,res)=>{
@@ -22,47 +26,6 @@ app.post("/signup",async(req,res)=>{
         res.status(400).send("Error : "+error.message);
     }
 });
-app.get("/feed",async(req,res)=>{
-    try{
-        const users=await User.find({});      
-        res.send(users);
-        console.log(users);
-    }
-    catch(error){ 
-        res.status(400).send("Error : "+error.message);
-    }
-});
-app.get("/user",async(req,res)=>{
-    const userEmail=req.body.email;
-    try{
-        const users=await User.find({email:userEmail});      
-        res.send(users);
-    }
-    catch(error){
-        res.status(400).send("Error : "+error.message);
-    }
-});
-app.delete("/deleteuser",async(req,res)=>{
-    const userId=req.body.userId;
-    try{
-        const users=await User.findByIdAndDelete(userId);      
-        res.send("user deleted");
-    }
-    catch(error){ 
-        res.send("error");
-    }
-});
-app.patch("/updateuser",async(req,res)=>{
-    const userId=req.body.userId;
-    const updateData=req.body;
-    try{
-        await User.findByIdAndUpdate({_id:userId},updateData);      
-        res.send("user updated");
-    }
-    catch(error){ 
-        res.status(400).send("Error : "+error.message);
-    }
-});
 
 app.post("/login",async(req,res)=>{
     try{
@@ -75,12 +38,26 @@ app.post("/login",async(req,res)=>{
         if(!ispasswordvalid){
             return res.status(400).send("Invalid credentials");
         }
+        const token=jwt.sign({id:user._id},'Uday@123$',{expiresIn:'7d'});
+        res.cookie("token",token);
         res.send("Login successful");
+        
     }   
     catch(error){
         res.status(400).send("Error : "+error.message);
     }
 });
+
+app.get("/profile",userAuth,async (req,res)=>{
+    const user=req.user;
+    res.send(user);
+});
+app.post("/connection",userAuth,async(req,res)=>{
+    const user=req.user;
+    console.log("sending Connection Request");
+    res.send(user.firstName+" sending connection");
+})
+
 
 connectDB()
 .then(() => {
