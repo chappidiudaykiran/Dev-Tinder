@@ -5,12 +5,12 @@ const userAuth = async (req, res, next) => {
   try {
     const { token } = req.cookies;
     if (!token) {
-      return res.status(401).send("Unauthorized: No token provided");
+      return res.status(401).send("Please Login!");
     }
 
     // verify token
-    const decoded = jwt.verify(token, "Uday@123$");
-    const user = await User.findById(decoded.id); // match login payload
+      const decoded = jwt.verify(token, "Uday@123$");
+      const user = await User.findById(decoded._id); // match login payload
 
     if (!user) {
       return res.status(401).send("Unauthorized: User not found");
@@ -18,10 +18,11 @@ const userAuth = async (req, res, next) => {
 
     req.user = user; // attach user to request
     next();
-  } catch (error) {
-    console.error("JWT Error:", error.message);
-    res.status(401).send("Unauthorized: " + error.message);
+  } catch (err) {
+    res.status(400).send("ERROR: " + err.message);
   }
 };
 
-module.exports = { userAuth };
+module.exports = {
+  userAuth,
+};

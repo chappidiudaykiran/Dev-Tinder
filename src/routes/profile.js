@@ -1,69 +1,38 @@
-const express = require('express');
-const authRouter = express.Router();
-const User=require("../models/user");
+const express = require("express");
+const profileRouter = express.Router();
+
 const { userAuth } = require("../middlewares/auth");
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');   
-const {valiadatesignup}=require("../utils/validation");
+const { validateEditProfileData } = require("../utils/validation");
 
-authRouter.post("/signup",async(req,res)=>{
-    const user = new User(req.body);
-    try {
-        valiadatesignup(req);
-        await user.save();
-        // Generate JWT and set cookie
-        const token = await user.getJWT();
-        res.cookie("token", token);
-        res.send("user added succesfull");
-    } catch (error) {
-        res.status(400).send("Error : " + error.message);
+profileRouter.get("/profile/view", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+
+    res.send(user);
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
+});
+
+profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
+  try {
+    if (!validateEditProfileData(req)) {
+      throw new Error("Invalid Edit Request");
     }
+
+    const loggedInUser = req.user;
+
+    Object.keys(req.body).forEach((key) => (loggedInUser[key] = req.body[key]));
+
+    await loggedInUser.save();
+
+    res.json({
+      message: `${loggedInUser.firstName}, your profile updated successfuly`,
+      data: loggedInUser,
+    });
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
 });
 
-authRouter.post("/login",async(req,res)=>{
-    try {
-        let { email, password } = req.body;
-        console.log("Login email received:", email);
-        email = email.trim().toLowerCase();
-        const user = await User.findOne({ email });
-        console.log("User found:", user);
-        if (!user) {
-            return res.status(400).send("Invalid credentials: user not found");
-        }
-    console.log("Password entered for login:", password);
-    console.log("Password in DB:", user.password);
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log("Password valid:", isPasswordValid);
-        if (!isPasswordValid) {
-            return res.status(400).send("Invalid credentials: wrong password");
-        }
-        const token = await user.getJWT();
-        res.cookie("token", token);
-        res.send("Login successful");
-    } catch (error) {
-        res.status(400).send("Error : " + error.message);
-    }
-});
-
-authRouter.post("/logout",userAuth,async(req,res)=>{
-    res.clearCookie("token");
-    res.send("Logout successful");
-});
-
-authRouter.post("/updatePassword", userAuth, async (req, res) => {
-    try {
-        const { newPassword } = req.body;
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            return res.status(404).send("User not found");
-        }
-    user.password = await bcrypt.hash(newPassword, 10);
-        await user.save();
-        res.json({ message: "Password updated successfully (hashed)" });
-    } catch (error) {
-        res.status(400).send("Error : " + error.message);
-    }
-});
-
-module.exports = authRouter;
-
+module.exports = profileRouter;
