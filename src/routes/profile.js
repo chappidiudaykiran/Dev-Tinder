@@ -1,54 +1,69 @@
 const express = require('express');
-const profileRouter = express.Router();
-const { userAuth } = require("../middlewares/auth");
+const authRouter = express.Router();
 const User=require("../models/user");
-const {validateEditProfileData}=require("../utils/validation");
-profileRouter.get("/profile/view",userAuth,async (req,res)=>{
-    try{
-        const user=req.user;
-        res.send(user);
-    }catch(error){
-        res.status(400).send("Error : "+error.message);
-    }
-});
-profileRouter.patch("/profile/edit",userAuth,async (req,res)=>{
-    try{
-        if(!validateEditProfileData(req)){
-            throw new Error("Invalid edit profile data");
-        }
-        const loggedInUser=req.user;
-        Object.keys(req.body).forEach((key)=>(loggedInUser[key]=req.body[key])); 
-        loggedInUser.save();
-        res.json({ message: `${loggedInUser.firstName} Profile updated successfully`, data: loggedInUser });
-    }catch(error){
+const { userAuth } = require("../middlewares/auth");
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');   
+const {valiadatesignup}=require("../utils/validation");
 
-        res.status(400).send("Error : "+error.message);
-    }
-});
-
-
-module.exports = profileRouter;
-
-
-// Forgot password API (no hashing)
-// Forgot password API (with hashing)
-profileRouter.patch("/profile/password", async (req, res) => {
+authRouter.post("/signup",async(req,res)=>{
+    const user = new User(req.body);
     try {
-        const { email, newPassword } = req.body;
-        if (!email || !newPassword) {
-            return res.status(400).json({ error: "Email and newPassword are required" });
-        }
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        const bcrypt = require('bcrypt');
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
+        valiadatesignup(req);
         await user.save();
-        res.json({ message: "Password updatedddd successfully (hashed)" });
+        // Generate JWT and set cookie
+        const token = await user.getJWT();
+        res.cookie("token", token);
+        res.send("user added succesfull");
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        res.status(400).send("Error : " + error.message);
     }
 });
- 
+
+authRouter.post("/login",async(req,res)=>{
+    try {
+        let { email, password } = req.body;
+        console.log("Login email received:", email);
+        email = email.trim().toLowerCase();
+        const user = await User.findOne({ email });
+        console.log("User found:", user);
+        if (!user) {
+            return res.status(400).send("Invalid credentials: user not found");
+        }
+    console.log("Password entered for login:", password);
+    console.log("Password in DB:", user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log("Password valid:", isPasswordValid);
+        if (!isPasswordValid) {
+            return res.status(400).send("Invalid credentials: wrong password");
+        }
+        const token = await user.getJWT();
+        res.cookie("token", token);
+        res.send("Login successful");
+    } catch (error) {
+        res.status(400).send("Error : " + error.message);
+    }
+});
+
+authRouter.post("/logout",userAuth,async(req,res)=>{
+    res.clearCookie("token");
+    res.send("Logout successful");
+});
+
+authRouter.post("/updatePassword", userAuth, async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).send("User not found");
+        }
+    user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+        res.json({ message: "Password updated successfully (hashed)" });
+    } catch (error) {
+        res.status(400).send("Error : " + error.message);
+    }
+});
+
+module.exports = authRouter;
+
