@@ -13,7 +13,7 @@ requestRouter.post("/request/send/:status/:toUserId",userAuth,async(req,res)=>{
         const status=req.params.status;
         const allowedStatus=["ignored","interested"];
         if(!allowedStatus.includes(status)){
-            return res.status(400).send("Invalid status value="+status);
+            return res.status(400).send("Invaliddd status value="+status);
         }
         const toUser=await User.findById(toUserId);
         if(!toUser){
@@ -27,7 +27,7 @@ requestRouter.post("/request/send/:status/:toUserId",userAuth,async(req,res)=>{
            $or:[{fromUserId,toUserId},{fromUserId:toUserId,toUserId:fromUserId}], 
         });
         if(existingRequest){
-            return res.status(400).send("Request already sent to this user");
+            return res.status(400).send("Requestt already sent to this user");
         }
         const connectionRequest=new ConnectionRequest({fromUserId,toUserId,status});
         const data=await connectionRequest.save();
