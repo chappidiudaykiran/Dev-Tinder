@@ -29,8 +29,10 @@ authRouter.post("/login",async(req,res)=>{
         if (!user) {
             return res.status(400).send("Invalid credentials: user not found");
         }
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        console.log("Password valid:", isPasswordValid);
+    console.log("Password entered for login:", password);
+    console.log("Password in DB:", user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log("Password valid:", isPasswordValid);
         if (!isPasswordValid) {
             return res.status(400).send("Invalid credentials: wrong password");
         }
@@ -54,7 +56,7 @@ authRouter.post("/updatePassword", userAuth, async (req, res) => {
         if (!user) {
             return res.status(404).send("User not found");
         }
-        user.password = await bcrypt.hash(newPassword, 10);
+    user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
         res.send("Password updated successfully");
     } catch (error) {
